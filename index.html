@@ -267,6 +267,10 @@
 
   /* ---------- VIDEO ---------- */
   .video-frame{max-width:760px;margin:0 auto}
+  .ph.soon{gap:10px;border-style:solid}
+  .ph.soon .ph__art{opacity:.5;margin-bottom:2px}
+  .soon-title{font-family:var(--font-body);font-weight:600;font-size:1.15rem;color:var(--text);margin:0}
+  .soon-sub{font-family:var(--font-body);color:var(--muted);font-size:.95rem;margin:0}
 
   /* ---------- PRIVACY ---------- */
   .privacy{
@@ -579,10 +583,10 @@
                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                      allowfullscreen loading="lazy"></iframe>
              (กล่อง .ph มี aspect-ratio 16:9 อยู่แล้ว จึงวาง iframe แบบ absolute ทับได้เลย ไม่ต้องแก้ layout) -->
-        <div class="ph ph--wide">
+        <div class="ph ph--wide soon">
           <svg class="ph__art" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>
-          <span class="ph__tag">VIDEO · 16:9</span>
-          <span class="ph__hint">วาง YouTube embed ตรงนี้</span>
+          <p class="soon-title">กำลังมาในเร็ว ๆ นี้</p>
+          <p class="soon-sub">คลิปสอนใช้งานกำลังจะมา</p>
         </div>
       </div>
     </div>
