@@ -6,8 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#060b14">
 <meta name="color-scheme" content="dark">
-<!-- Mark that JS is available, before first paint, so reveal-animations only hide content when they can also un-hide it. -->
-<script>document.documentElement.classList.add('js');</script>
 <title>reflect. — ไดอารี่ส่วนตัวที่อยู่ในเครื่องคุณ</title>
 <meta name="description" content="Reflect คือไดอารี่รายวันแบบเป็นส่วนตัวจริง ๆ ไม่ต้องสมัคร ไม่มีเซิร์ฟเวอร์ ทุกอย่างเก็บไว้ในเครื่องคุณเอง ใช้ฟรี ใช้ได้แม้ไม่มีเน็ต">
 
@@ -320,13 +318,10 @@
   .brandmark{font-family:var(--font-mono);font-weight:500;color:var(--muted-2);letter-spacing:-.01em;margin-bottom:var(--s-3);font-size:1.1rem}
   .brandmark .dot{color:var(--accent-text)}
 
-  /* ---------- reveal on scroll (progressive enhancement) ----------
-     Content is fully visible by default. Only when JS is running (.js on <html>)
-     AND the user allows motion do we hide-then-reveal. This guarantees the page
-     is readable even if JavaScript never runs. */
+  /* ---------- reveal on scroll (motion-safe only) ---------- */
   @media (prefers-reduced-motion: no-preference){
-    .js .reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease, transform .6s ease}
-    .js .reveal.in{opacity:1;transform:none}
+    .reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease, transform .6s ease}
+    .reveal.in{opacity:1;transform:none}
   }
 
   @media (max-width:560px){
