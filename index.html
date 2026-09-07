@@ -7,7 +7,13 @@
 <meta name="theme-color" content="#060b14">
 <meta name="color-scheme" content="dark">
 <!-- Mark that JS is available, before first paint, so reveal-animations only hide content when they can also un-hide it. -->
-<script>document.documentElement.classList.add('js');</script>
+<script>
+  document.documentElement.classList.add('js');
+  // Always open at the very top for visitors — even if a shared link carried a "#section" hash
+  // (e.g. a link copied right after clicking a nav item). Nav links still work after load.
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
+  try { if (location.hash) history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+</script>
 <title>reflect. — ไดอารี่ส่วนตัวที่อยู่ในเครื่องคุณ</title>
 <meta name="description" content="Reflect คือไดอารี่รายวันแบบเป็นส่วนตัวจริง ๆ ไม่ต้องสมัคร ไม่มีเซิร์ฟเวอร์ ทุกอย่างเก็บไว้ในเครื่องคุณเอง ใช้ฟรี ใช้ได้แม้ไม่มีเน็ต">
 
@@ -405,7 +411,7 @@
 
       <p class="wordmark reveal">reflect<span class="dot">.</span></p>
 
-      <h1 class="reveal">บันทึกวันของคุณ แบบเป็นส่วนตัวจริง ๆ</h1>
+      <h1 class="reveal">Reflect บันทึกวันของคุณ แบบเป็นส่วนตัวจริง ๆ</h1>
 
       <p class="subtitle reveal">
         Reflect คือไดอารี่รายวันที่เก็บทุกอย่างไว้ในเครื่องของคุณเอง
@@ -803,6 +809,9 @@
     nav.querySelectorAll('.nav-links a').forEach(function(a){ a.addEventListener('click', close); });
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
   })();
+
+  // Extra safety net for in-app browsers (LINE, etc.): land at the top on first load.
+  window.addEventListener('load', function(){ if (!location.hash) window.scrollTo(0, 0); });
 </script>
 
 </body>
