@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<!-- viewport: allow zoom for accessibility (do NOT add maximum-scale / user-scalable=no) -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#060b14">
+<meta name="color-scheme" content="dark">
+<!-- Mark that JS is available, before first paint, so reveal-animations only hide content when they can also un-hide it. -->
+<script>document.documentElement.classList.add('js');</script>
+<title>reflect. — ไดอารี่ส่วนตัวที่อยู่ในเครื่องคุณ</title>
+<meta name="description" content="Reflect คือไดอารี่รายวันแบบเป็นส่วนตัวจริง ๆ ไม่ต้องสมัคร ไม่มีเซิร์ฟเวอร์ ทุกอย่างเก็บไว้ในเครื่องคุณเอง ใช้ฟรี ใช้ได้แม้ไม่มีเน็ต">
+
+<!-- ===== FONT LOADING (Thai layout-shift minimized) ===== -->
+<!-- Warm up the font host early -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Preload the exact Thai-subset Sarabun weights actually used on this page (400 body, 600 headings).
+     These start downloading before the CSS is parsed, so the Thai text swaps in almost immediately. -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/sarabun/v17/DtVjJx26TKEr37c9aAFJn2QN.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/sarabun/v17/DtVmJx26TKEr37c9YMptik8s6zDX.woff2">
+<!-- Only weights actually used: Sarabun 400/600 (Thai body + headings), DM Mono 400/500 (Latin/number accents).
+     DM Mono has no Thai glyphs, so it is applied ONLY to Latin/numeric accents; all Thai always uses Sarabun. -->
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sarabun:wght@400;600&display=swap">
+
+<style>
+  /* ---------- Fallback font metric override ----------
+     While Sarabun loads, text is drawn in a device Thai font. These overrides make that
+     fallback reserve roughly the same vertical/horizontal space as Sarabun so the page does
+     not visibly jump when Sarabun finishes loading.
+     NOTE: values are approximate and tuned by eye — nudge size-adjust up/down a few % if you
+     still see a small shift on your test devices. */
+  @font-face {
+    font-family: 'Sarabun Fallback';
+    src: local('Leelawadee UI'), local('Noto Sans Thai'), local('Tahoma');
+    font-weight: 400 600;
+    size-adjust: 106%;
+    ascent-override: 105%;
+    descent-override: 34%;
+    line-gap-override: 0%;
+  }
+
+  :root{
+    --bg:#060b14;
+    --card:#0d1624;
+    --card-2:#101c30;          /* slightly raised surface */
+    --accent:#6366f1;          /* indigo — fills/buttons */
+    --accent-hover:#7c7ff5;
+    --accent-text:#a5b4fc;     /* lighter indigo for small text/links (passes contrast on dark) */
+    --accent-soft:rgba(99,102,241,.14);
+    --text:#f1f5f9;
+    --muted:#9fb0c9;           /* secondary text — ~7:1 on --bg */
+    --muted-2:#6b7c98;         /* tertiary / captions */
+    --border:rgba(148,163,184,.14);
+    --border-strong:rgba(148,163,184,.24);
+    --radius:22px;
+    --radius-sm:14px;
+    --maxw:1120px;
+
+    /* spacing scale */
+    --s-1:8px; --s-2:16px; --s-3:24px; --s-4:32px; --s-5:48px; --s-6:64px; --s-7:96px;
+
+    --font-body:'Sarabun','Sarabun Fallback','Noto Sans Thai','Leelawadee UI',sans-serif;
+    --font-mono:'DM Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  @media (prefers-reduced-motion: no-preference){ html{scroll-behavior:smooth} }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    font-size:17px;
+    line-height:1.75;
+    font-weight:400;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+
+  /* soft ambient glow behind the hero — subtle, not decorative noise */
+  body::before{
+    content:"";
+    position:fixed;
+    top:-20%; left:50%;
+    width:min(900px,120vw); height:min(900px,120vw);
+    transform:translateX(-50%);
+    background:radial-gradient(circle at center, rgba(99,102,241,.18), transparent 62%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  a{color:var(--accent-text);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  img{max-width:100%;display:block}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--s-3);position:relative;z-index:1}
+
+  /* skip link */
+  .skip{
+    position:absolute;left:var(--s-2);top:-60px;
+    background:var(--accent);color:#fff;padding:10px 16px;border-radius:10px;
+    z-index:100;transition:top .2s ease;font-weight:600;
+  }
+  .skip:focus{top:var(--s-2);text-decoration:none}
+
+  :focus-visible{outline:3px solid var(--accent-text);outline-offset:3px;border-radius:8px}
+
+  /* ---------- shared bits ---------- */
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:.78rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent-text);
+    margin:0 0 var(--s-2);
+    display:inline-flex;align-items:center;gap:.55em;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block}
+
+  section{padding:var(--s-7) 0;position:relative}
+  .section-head{max-width:640px;margin:0 auto var(--s-5);text-align:center}
+  .section-head h2{
+    font-size:clamp(1.7rem,4.5vw,2.4rem);
+    font-weight:600;line-height:1.3;margin:0 0 var(--s-2);
+    letter-spacing:-.01em;
+  }
+  .section-head p{color:var(--muted);margin:0;font-size:1.05rem}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:.6em;
+    background:var(--accent);color:#ffffff;
+    font-family:var(--font-body);font-weight:600;font-size:1.08rem;
+    padding:15px 30px;border-radius:999px;border:0;cursor:pointer;
+    transition:background .2s ease, transform .2s ease, box-shadow .2s ease;
+    box-shadow:0 10px 30px -8px rgba(99,102,241,.55);
+  }
+  .btn:hover{background:var(--accent-hover);text-decoration:none;transform:translateY(-2px);box-shadow:0 16px 40px -10px rgba(99,102,241,.65)}
+  .btn:active{transform:translateY(0)}
+  .btn svg{width:20px;height:20px}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:var(--s-4);
+    transition:transform .25s ease, border-color .25s ease, background .25s ease;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{padding-top:var(--s-6);text-align:center}
+  .hero .wrap{display:flex;flex-direction:column;align-items:center}
+
+  /* logo placeholder */
+  .logo-ph{
+    width:104px;aspect-ratio:1;border-radius:26px;position:relative;
+    margin-bottom:var(--s-4);
+  }
+  .wordmark{
+    font-family:var(--font-mono);font-weight:500;
+    font-size:clamp(2.4rem,9vw,3.4rem);
+    letter-spacing:-.02em;color:var(--text);margin:0 0 var(--s-3);line-height:1;
+  }
+  .wordmark .dot{color:var(--accent-text)}
+  .hero h1{
+    font-size:clamp(1.5rem,5.2vw,2.15rem);
+    font-weight:600;line-height:1.4;margin:0 0 var(--s-3);
+    max-width:16ch;letter-spacing:-.01em;
+  }
+  .hero .subtitle{color:var(--muted);max-width:52ch;margin:0 0 var(--s-5);font-size:1.08rem}
+  .hero .cta-note{
+    margin-top:var(--s-3);color:var(--muted-2);font-size:.92rem;
+    display:flex;flex-wrap:wrap;gap:.4em 1em;justify-content:center;
+  }
+
+  /* ---------- BENEFITS ---------- */
+  .grid-benefits{
+    display:grid;gap:var(--s-3);
+    grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  }
+  .benefit .icon{
+    width:52px;height:52px;border-radius:15px;
+    background:var(--accent-soft);color:var(--accent-text);
+    display:grid;place-items:center;margin-bottom:var(--s-3);
+  }
+  .benefit .icon svg{width:26px;height:26px}
+  .benefit h3{font-size:1.15rem;font-weight:600;margin:0 0 .5em;line-height:1.4}
+  .benefit p{color:var(--muted);margin:0;font-size:.98rem}
+  .benefit:hover{transform:translateY(-4px);border-color:var(--border-strong)}
+
+  /* ---------- HOW (steps) ---------- */
+  .grid-steps{
+    display:grid;gap:var(--s-4);
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    align-items:start;
+  }
+  .step{text-align:center;display:flex;flex-direction:column;align-items:center}
+  .step .num{
+    font-family:var(--font-mono);font-size:.85rem;font-weight:500;
+    color:var(--accent-text);letter-spacing:.1em;margin-bottom:var(--s-2);
+    display:flex;align-items:center;gap:.6em;
+  }
+  .step .num b{
+    font-size:1.05rem;background:var(--accent-soft);color:var(--accent-text);
+    width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:500;
+  }
+  .step h3{font-size:1.2rem;font-weight:600;margin:0 0 .4em}
+  .step p{color:var(--muted);margin:0 0 var(--s-3);font-size:.98rem;max-width:30ch}
+
+  /* phone screenshot placeholder */
+  .shot{margin:0;width:100%;max-width:230px}
+  .ph{
+    position:relative;width:100%;
+    background:linear-gradient(180deg,var(--card-2),var(--card));
+    border:1.5px dashed var(--border-strong);
+    border-radius:var(--radius-sm);
+    display:grid;place-items:center;gap:6px;
+    overflow:hidden;
+    color:var(--muted-2);
+  }
+  .ph--phone{aspect-ratio:9 / 19.5;border-radius:26px}
+  .ph--wide{aspect-ratio:16 / 9;border-radius:var(--radius)}
+  .ph__art{width:34px;height:34px;color:var(--accent-text);opacity:.65}
+  .ph--wide .ph__art{width:56px;height:56px}
+  .ph__tag{
+    font-family:var(--font-mono);font-size:.68rem;letter-spacing:.16em;
+    color:var(--muted-2);text-transform:uppercase;
+  }
+  .ph__hint{font-family:var(--font-mono);font-size:.72rem;color:var(--muted-2);opacity:.75;padding:0 8px;text-align:center;word-break:break-all}
+  /* the real <img>; sits on top and covers the placeholder art once the file exists */
+  .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+  .ph img.is-missing{display:none} /* hidden until you drop the real file in */
+
+  /* ---------- INSTALL ---------- */
+  .grid-install{
+    display:grid;gap:var(--s-3);
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  }
+  .install-head{display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-3)}
+  .install-head .icon{
+    width:46px;height:46px;border-radius:13px;background:var(--accent-soft);
+    color:var(--accent-text);display:grid;place-items:center;flex:none;
+  }
+  .install-head .icon svg{width:24px;height:24px}
+  .install-head h3{margin:0;font-size:1.2rem;font-weight:600}
+  .install-head span{display:block;font-size:.85rem;color:var(--muted-2);font-family:var(--font-mono);letter-spacing:.03em}
+  .steps-list{margin:0;padding:0;list-style:none;counter-reset:i;display:flex;flex-direction:column;gap:var(--s-2)}
+  .steps-list li{
+    position:relative;padding-left:40px;color:var(--muted);font-size:1rem;line-height:1.6;
+  }
+  .steps-list li::before{
+    counter-increment:i;content:counter(i);
+    position:absolute;left:0;top:1px;
+    width:26px;height:26px;border-radius:50%;
+    background:var(--accent-soft);color:var(--accent-text);
+    font-family:var(--font-mono);font-size:.8rem;font-weight:500;
+    display:grid;place-items:center;
+  }
+  .steps-list b{color:var(--text);font-weight:600}
+
+  /* ---------- VIDEO ---------- */
+  .video-frame{max-width:760px;margin:0 auto}
+
+  /* ---------- PRIVACY ---------- */
+  .privacy{
+    background:linear-gradient(180deg,rgba(99,102,241,.07),transparent);
+  }
+  .privacy-card{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:var(--s-5);max-width:760px;margin:0 auto;
+  }
+  .privacy-card .lead{font-size:1.15rem;color:var(--text);margin:0 0 var(--s-4);font-weight:600;line-height:1.5}
+  .privacy-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:var(--s-3)}
+  .privacy-list li{display:flex;gap:var(--s-2);align-items:flex-start;color:var(--muted);line-height:1.6}
+  .privacy-list .check{
+    flex:none;width:26px;height:26px;border-radius:50%;
+    background:var(--accent-soft);color:var(--accent-text);display:grid;place-items:center;margin-top:2px;
+  }
+  .privacy-list .check svg{width:15px;height:15px}
+  .privacy-list b{color:var(--text);font-weight:600}
+  .privacy-note{margin:var(--s-4) 0 0;padding-top:var(--s-4);border-top:1px solid var(--border);color:var(--muted-2);font-size:.95rem;line-height:1.6}
+
+  /* ---------- FEEDBACK ---------- */
+  .grid-feedback{
+    display:grid;gap:var(--s-3);
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  }
+  .fb-card{
+    display:flex;gap:var(--s-3);align-items:flex-start;
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:var(--s-4);color:var(--text);
+    transition:transform .25s ease,border-color .25s ease,background .25s ease;
+  }
+  .fb-card:hover{transform:translateY(-4px);border-color:var(--accent);text-decoration:none;background:var(--card-2)}
+  .fb-card .emoji{font-size:1.9rem;line-height:1;flex:none}
+  .fb-card .fb-body{display:flex;flex-direction:column;gap:.5em}
+  .fb-card .fb-label{font-size:1.02rem;line-height:1.55;color:var(--text);font-weight:400}
+  .fb-card .fb-go{
+    font-family:var(--font-mono);font-size:.8rem;letter-spacing:.06em;color:var(--accent-text);
+    display:inline-flex;align-items:center;gap:.4em;
+  }
+  .fb-card .fb-go svg{width:15px;height:15px}
+
+  /* ---------- FOOTER ---------- */
+  footer{border-top:1px solid var(--border);padding:var(--s-6) 0;text-align:center}
+  footer .fname{font-weight:600;color:var(--text);margin:0 0 var(--s-2)}
+  footer .fmeta{color:var(--muted-2);font-size:.92rem;margin:0 0 var(--s-4);line-height:1.7}
+  footer .flink{
+    display:inline-flex;align-items:center;gap:.5em;color:var(--accent-text);
+    font-family:var(--font-mono);font-size:.9rem;letter-spacing:.03em;
+  }
+  footer .flink svg{width:16px;height:16px}
+  .brandmark{font-family:var(--font-mono);font-weight:500;color:var(--muted-2);letter-spacing:-.01em;margin-bottom:var(--s-3);font-size:1.1rem}
+  .brandmark .dot{color:var(--accent-text)}
+
+  /* ---------- reveal on scroll (progressive enhancement) ----------
+     Content is fully visible by default. Only when JS is running (.js on <html>)
+     AND the user allows motion do we hide-then-reveal. This guarantees the page
+     is readable even if JavaScript never runs. */
+  @media (prefers-reduced-motion: no-preference){
+    .js .reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease, transform .6s ease}
+    .js .reveal.in{opacity:1;transform:none}
+  }
+
+  @media (max-width:560px){
+    section{padding:var(--s-6) 0}
+    body{font-size:16px}
+    .privacy-card{padding:var(--s-4)}
+  }
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">ข้ามไปยังเนื้อหาหลัก</a>
+
+<main id="main">
+
+  <!-- ============ 1. HERO ============ -->
+  <header class="hero" role="banner">
+    <div class="wrap">
+
+      <!-- PLACEHOLDER: โลโก้แอป — วางไฟล์ชื่อ logo.png (สี่เหลี่ยมจัตุรัส เช่น 512×512) ไว้ในโฟลเดอร์เดียวกับไฟล์นี้
+           รูปจะขึ้นทับกล่อง placeholder ให้เองอัตโนมัติ ไม่ต้องแก้ layout -->
+      <div class="logo-ph ph reveal" aria-hidden="false">
+        <img src="logo.png" alt="โลโก้แอป Reflect" onerror="this.classList.add('is-missing')">
+        <svg class="ph__art" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <path d="M12 3v18M3 12h18" stroke-linecap="round" opacity=".4"/>
+          <circle cx="12" cy="12" r="9"/>
+        </svg>
+        <span class="ph__tag">LOGO</span>
+      </div>
+
+      <p class="wordmark reveal">reflect<span class="dot">.</span></p>
+
+      <h1 class="reveal">บันทึกวันของคุณ แบบเป็นส่วนตัวจริง ๆ</h1>
+
+      <p class="subtitle reveal">
+        Reflect คือไดอารี่รายวันที่เก็บทุกอย่างไว้ในเครื่องของคุณเอง
+        ไม่ต้องสมัคร ไม่ต้องล็อกอิน ไม่มีใครแอบอ่านได้ — แค่เปิดขึ้นมาแล้วเขียน
+      </p>
+
+      <a class="btn reveal" href="https://liamsodium.github.io/Reflect/" target="_blank" rel="noopener">
+        เปิดแอป
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+
+      <p class="cta-note reveal">
+        <span>ฟรี ไม่มีค่าใช้จ่าย</span><span>·</span>
+        <span>ไม่มีโฆษณา</span><span>·</span>
+        <span>ใช้ได้บนมือถือและคอมพิวเตอร์</span>
+      </p>
+    </div>
+  </header>
+
+  <!-- ============ 2. WHY REFLECT ============ -->
+  <section aria-labelledby="why-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>WHY REFLECT</p>
+        <h2 id="why-h">ทำไมต้อง Reflect</h2>
+        <p>เขียนไดอารี่ควรเป็นเรื่องเบา ๆ และเป็นส่วนตัว — นี่คือสิ่งที่ Reflect ตั้งใจทำให้ดี</p>
+      </div>
+
+      <div class="grid-benefits">
+        <article class="card benefit reveal">
+          <div class="icon" aria-hidden="true">
+            <!-- shield/lock -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6l7-3z" stroke-linejoin="round"/>
+              <path d="M9.5 12l1.8 1.8 3.4-3.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>ข้อมูลอยู่กับคุณคนเดียว</h3>
+          <p>ทุกอย่างที่เขียนถูกเก็บไว้ในเครื่องของคุณ ไม่ได้ถูกส่งขึ้นเซิร์ฟเวอร์ที่ไหนเลย</p>
+        </article>
+
+        <article class="card benefit reveal">
+          <div class="icon" aria-hidden="true">
+            <!-- bolt -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>เขียนเสร็จใน 15 วินาที</h3>
+          <p>มีโหมดเขียนเร็วสำหรับวันที่ยุ่ง ตอบสั้น ๆ ก็พอ ไม่ต้องฝืนเขียนยาว</p>
+        </article>
+
+        <article class="card benefit reveal">
+          <div class="icon" aria-hidden="true">
+            <!-- cloud off / offline -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <path d="M17.5 19H7a4 4 0 01-.8-7.9A5.5 5.5 0 0116 9.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 4l16 16" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>ใช้ได้แม้ไม่มีเน็ต</h3>
+          <p>เปิดใช้งานได้แบบออฟไลน์ เพราะแอปทำงานอยู่ในเครื่องคุณอยู่แล้ว</p>
+        </article>
+
+        <article class="card benefit reveal">
+          <div class="icon" aria-hidden="true">
+            <!-- rotating / daily -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <path d="M20 12a8 8 0 10-2.3 5.6" stroke-linecap="round"/>
+              <path d="M20 6v4h-4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>คำถามใหม่ทุกวัน</h3>
+          <p>มีคำถามหมุนเวียนในแต่ละวันคอยชวนคุณคิด เผื่อวันไหนนึกไม่ออกว่าจะเขียนอะไรดี</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. HOW TO USE ============ -->
+  <section aria-labelledby="how-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>HOW IT WORKS</p>
+        <h2 id="how-h">ใช้ยังไง</h2>
+        <p>แค่สามขั้นตอนง่าย ๆ ก็เริ่มได้เลย</p>
+      </div>
+
+      <div class="grid-steps">
+        <!-- STEP 1 -->
+        <div class="step reveal">
+          <div class="num"><b>1</b> STEP 01</div>
+          <h3>เขียน</h3>
+          <p>จดสิ่งที่เกิดขึ้นในวันนี้ หรือตอบคำถามประจำวันสั้น ๆ ก็ได้</p>
+          <!-- PLACEHOLDER: ภาพหน้าจอแอปตอน "เขียน" — วางไฟล์ screenshot-write.png
+               (แนวตั้งมือถือ ~1080×2340) ไว้ในโฟลเดอร์เดียวกับไฟล์นี้ -->
+          <figure class="shot">
+            <div class="ph ph--phone">
+              <img src="screenshot-write.png" alt="ภาพหน้าจอแอป Reflect ขั้นตอนการเขียนบันทึก" loading="lazy" onerror="this.classList.add('is-missing')">
+              <svg class="ph__art" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 20h16M6 16l9-9 3 3-9 9H6v-3z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="ph__tag">SCREENSHOT</span>
+              <span class="ph__hint">screenshot-write.png</span>
+            </div>
+          </figure>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step reveal">
+          <div class="num"><b>2</b> STEP 02</div>
+          <h3>ให้คะแนน</h3>
+          <p>ให้คะแนนวันนี้ของคุณ เพื่อดูภาพรวมว่าช่วงนี้เป็นยังไงบ้าง</p>
+          <!-- PLACEHOLDER: ภาพหน้าจอแอปตอน "ให้คะแนน" — วางไฟล์ screenshot-rate.png
+               (แนวตั้งมือถือ ~1080×2340) ไว้ในโฟลเดอร์เดียวกับไฟล์นี้ -->
+          <figure class="shot">
+            <div class="ph ph--phone">
+              <img src="screenshot-rate.png" alt="ภาพหน้าจอแอป Reflect ขั้นตอนการให้คะแนนวัน" loading="lazy" onerror="this.classList.add('is-missing')">
+              <svg class="ph__art" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 4l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 9.7l5.4-.8L12 4z" stroke-linejoin="round"/></svg>
+              <span class="ph__tag">SCREENSHOT</span>
+              <span class="ph__hint">screenshot-rate.png</span>
+            </div>
+          </figure>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step reveal">
+          <div class="num"><b>3</b> STEP 03</div>
+          <h3>ดูย้อนหลัง</h3>
+          <p>เปิดดูบันทึกเก่า ๆ ได้ทุกเมื่อ เห็นว่าที่ผ่านมาเราเป็นยังไงบ้าง</p>
+          <!-- PLACEHOLDER: ภาพหน้าจอแอปตอน "ดูย้อนหลัง" — วางไฟล์ screenshot-history.png
+               (แนวตั้งมือถือ ~1080×2340) ไว้ในโฟลเดอร์เดียวกับไฟล์นี้ -->
+          <figure class="shot">
+            <div class="ph ph--phone">
+              <img src="screenshot-history.png" alt="ภาพหน้าจอแอป Reflect ขั้นตอนการดูบันทึกย้อนหลัง" loading="lazy" onerror="this.classList.add('is-missing')">
+              <svg class="ph__art" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 8v4l3 2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 12a8.5 8.5 0 108.5-8.5A8.4 8.4 0 004 8" stroke-linecap="round"/><path d="M4 4v4h4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="ph__tag">SCREENSHOT</span>
+              <span class="ph__hint">screenshot-history.png</span>
+            </div>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. INSTALL ============ -->
+  <section aria-labelledby="install-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>INSTALL</p>
+        <h2 id="install-h">ติดตั้งลงเครื่อง</h2>
+        <p>เพิ่ม Reflect ไว้ที่หน้าจอโฮม เปิดใช้ได้เหมือนแอปทั่วไป</p>
+      </div>
+
+      <div class="grid-install">
+        <!-- iPhone -->
+        <article class="card reveal">
+          <div class="install-head">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                <rect x="7" y="2.5" width="10" height="19" rx="2.5"/>
+                <path d="M10.5 18.5h3" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <h3>iPhone</h3>
+              <span>Safari</span>
+            </div>
+          </div>
+          <ol class="steps-list">
+            <li>เปิดเว็บ Reflect ด้วยเบราว์เซอร์ <b>Safari</b></li>
+            <li>กดปุ่ม <b>แชร์</b> (ไอคอนสี่เหลี่ยมมีลูกศรชี้ขึ้น) ด้านล่างจอ</li>
+            <li>เลื่อนหาแล้วเลือก <b>“เพิ่มไปยังหน้าจอโฮม”</b> (Add to Home Screen)</li>
+          </ol>
+        </article>
+
+        <!-- Android -->
+        <article class="card reveal">
+          <div class="install-head">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                <rect x="6" y="2.5" width="12" height="19" rx="2"/>
+                <path d="M10 5.5h4" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Android</h3>
+              <span>Chrome</span>
+            </div>
+          </div>
+          <ol class="steps-list">
+            <li>เปิดเว็บ Reflect ด้วยเบราว์เซอร์ <b>Chrome</b></li>
+            <li>กด <b>เมนู</b> (จุดสามจุด ⋮ มุมขวาบน)</li>
+            <li>เลือก <b>“ติดตั้งแอป”</b> หรือ <b>“เพิ่มไปยังหน้าจอหลัก”</b></li>
+          </ol>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. TUTORIAL VIDEO (placeholder) ============ -->
+  <section aria-labelledby="video-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>WATCH</p>
+        <h2 id="video-h">ดูวิธีใช้แบบเห็นภาพ</h2>
+        <p>คลิปสั้น ๆ พาใช้งานตั้งแต่เริ่ม</p>
+      </div>
+
+      <div class="video-frame reveal">
+        <!-- PLACEHOLDER: วิดีโอสอนใช้งาน (16:9)
+             วิธีใส่จริง: ลบกล่อง .ph ด้านล่างนี้ทิ้ง แล้ววาง YouTube embed แทน เช่น
+             <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="วิธีใช้ Reflect"
+                     style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:var(--radius)"
+                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                     allowfullscreen loading="lazy"></iframe>
+             (กล่อง .ph มี aspect-ratio 16:9 อยู่แล้ว จึงวาง iframe แบบ absolute ทับได้เลย ไม่ต้องแก้ layout) -->
+        <div class="ph ph--wide">
+          <svg class="ph__art" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>
+          <span class="ph__tag">VIDEO · 16:9</span>
+          <span class="ph__hint">วาง YouTube embed ตรงนี้</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6. PRIVACY REASSURANCE ============ -->
+  <section class="privacy" aria-labelledby="privacy-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>PRIVACY</p>
+        <h2 id="privacy-h">ความเป็นส่วนตัวของคุณ มาก่อนเสมอ</h2>
+      </div>
+
+      <div class="privacy-card reveal">
+        <p class="lead">Reflect ถูกออกแบบมาให้ความลับของคุณเป็นของคุณจริง ๆ ไม่ใช่แค่คำพูดสวย ๆ</p>
+        <ul class="privacy-list">
+          <li>
+            <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span><b>ไม่มีบัญชีผู้ใช้</b> — ไม่ต้องสมัคร ไม่ต้องล็อกอิน ไม่ต้องใส่อีเมลหรือเบอร์โทร</span>
+          </li>
+          <li>
+            <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span><b>ไม่มีเซิร์ฟเวอร์เก็บข้อมูล</b> — บันทึกทุกอย่างอยู่ในเบราว์เซอร์ของเครื่องคุณเท่านั้น</span>
+          </li>
+          <li>
+            <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span><b>ไม่มีการอัปโหลด</b> — ไม่มีข้อมูลอะไรถูกส่งออกไปข้างนอกเลย</span>
+          </li>
+          <li>
+            <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span><b>ตัวผมเองก็อ่านไม่ได้</b> — ในฐานะคนทำแอป ผมอ่านไดอารี่ของคุณไม่ได้เลย ทำไม่ได้จริง ๆ เพราะมันไม่เคยออกจากเครื่องคุณ</span>
+          </li>
+        </ul>
+        <!-- ข้อความเตือนด้านล่างนี้เป็นข้อเท็จจริงของแอปแบบ local-only ทุกตัว (ข้อมูลหายถ้าล้างเบราว์เซอร์)
+             [ถามผู้ใช้: แอปมีฟีเจอร์ Export / สำรองข้อมูลไหม? ถ้ามี บอกผมได้ จะได้เพิ่มวิธีสำรองตรงนี้ให้ถูกต้อง — ตอนนี้ยังไม่กล่าวถึงเพื่อไม่ให้พูดเกินจริง] -->
+        <p class="privacy-note">
+          เพราะข้อมูลอยู่ในเครื่องคุณล้วน ๆ ถ้าล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนเครื่อง บันทึกก็อาจหายไปด้วย —
+          นี่คือราคาของความเป็นส่วนตัวเต็มร้อย ที่แลกมากับการที่ไม่มีใครแตะข้อมูลของคุณได้เลย
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 7. FEEDBACK ============ -->
+  <section aria-labelledby="fb-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>FEEDBACK</p>
+        <h2 id="fb-h">มีอะไรอยากบอกไหม</h2>
+        <p>ความเห็นของคุณช่วยให้ Reflect ดีขึ้น เลือกช่องทางที่สบายใจได้เลย</p>
+      </div>
+
+      <div class="grid-feedback">
+        <!-- Card 1 — public review (label verbatim, do not edit) -->
+        <a class="fb-card reveal"
+           href="https://docs.google.com/forms/d/e/1FAIpQLScQcLBIrpPE_CnJWDLKgRbJ-RNGpaXlh7imitwL06mcnRm56A/viewform"
+           target="_blank" rel="noopener">
+          <span class="emoji" aria-hidden="true">📝</span>
+          <span class="fb-body">
+            <span class="fb-label">อยากรีวิวหรือบอกความรู้สึกที่ใช้ (เปิดให้ทุกคนอ่านกันได้)</span>
+            <span class="fb-go">เปิดฟอร์ม
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </span>
+        </a>
+
+        <!-- Card 2 — private bug report (label verbatim, do not edit) -->
+        <a class="fb-card reveal"
+           href="https://docs.google.com/forms/d/e/1FAIpQLSegkWjP9o8ud3MUk0G6h8a_ORGEju-1tQ5eZi5NEunErsRsmQ/viewform"
+           target="_blank" rel="noopener">
+          <span class="emoji" aria-hidden="true">🐛</span>
+          <span class="fb-body">
+            <span class="fb-label">เจอบั๊กหรืออยากแจ้งอะไรเป็นการส่วนตัว (ผมอ่านคนเดียว ไม่มีใครเห็น)</span>
+            <span class="fb-go">เปิดฟอร์ม
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ 8. FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <p class="brandmark">reflect<span class="dot">.</span></p>
+    <p class="fname">สร้างโดย สิรวิชญ์ นำเบญจพล · นศพ. ม.นเรศวร</p>
+    <p class="fmeta">Reflect เป็นแอปฟรี ใช้ได้ไม่มีค่าใช้จ่าย</p>
+    <a class="flink" href="https://liamsodium.github.io/Reflect/" target="_blank" rel="noopener">
+      เปิดแอป Reflect
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+</footer>
+
+<script>
+  // Gentle reveal-on-scroll — only when the user hasn't asked to reduce motion.
+  (function () {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var els = document.querySelectorAll('.reveal');
+    if (reduce || !('IntersectionObserver' in window)) {
+      els.forEach(function (el) { el.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    els.forEach(function (el) { io.observe(el); });
+  })();
+</script>
+
+</body>
+</html>
