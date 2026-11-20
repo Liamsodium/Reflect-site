@@ -723,7 +723,7 @@
           </li>
           <li>
             <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span><b>มีตัวนับแบบนิรนาม</b> — ใช้ GoatCounter นับคร่าวๆ ว่ามีกี่เครื่องเปิดหน้านี้และแอป ไม่ใช้คุกกี้ ไม่เห็นเนื้อหาไดอารี่ และเคารพ Do Not Track · ฟอนต์โหลดจาก Google Fonts จึงทำให้ Google เห็นที่อยู่เครือข่ายของคุณ</span>
+            <span><b>มีตัวนับแบบนิรนาม</b> — ใช้ GoatCounter นับคร่าวๆ ว่ามีกี่เครื่องเปิดหน้านี้และแอป (เครื่องละไม่เกินวันละครั้ง) ไม่ใช้คุกกี้ ไม่เห็นเนื้อหาไดอารี่ และเคารพ Do Not Track · ฟอนต์โหลดจาก Google Fonts จึงทำให้ Google เห็นที่อยู่เครือข่ายของคุณ</span>
           </li>
           <li>
             <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -899,12 +899,19 @@
 
 <script>
   // ตัวนับผู้เข้าชมแบบนิรนาม (GoatCounter, pixel) — ส่งแค่ path "/site" ไม่ใช้คุกกี้ ข้ามถ้าเครื่องนี้ตั้ง "ไม่นับ" หรือเปิด Do Not Track
+  // ส่งวันละไม่เกิน 1 ครั้งต่อเครื่อง (จำแค่วันที่ส่งล่าสุด) เพราะ pixel ไม่รวมการเปิดซ้ำให้ — ใช้คีย์แยกจากแอป กันแอปส่งแล้วหน้าเว็บเลยไม่ถูกนับ
   (function () {
     try { if (localStorage.getItem('reflect_nocount_device_v1') === '1') return; } catch (e) {}
     if (navigator.doNotTrack === '1') return;
+    var d = new Date();
+    var today = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    try { if (localStorage.getItem('reflect_lastping_site_v1') === today) return; } catch (e) {}
     try {
       var img = new Image();
       img.referrerPolicy = 'no-referrer';
+      img.onload = function () {
+        try { localStorage.setItem('reflect_lastping_site_v1', today); } catch (e) {}
+      };
       img.src = 'https://reflect-app.goatcounter.com/count?p=/site';
     } catch (e) {}
   })();
