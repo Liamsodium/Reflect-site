@@ -15,7 +15,7 @@
   try { if (location.hash) history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
 </script>
 <title>reflect. — ไดอารี่ส่วนตัวที่อยู่ในเครื่องคุณ</title>
-<meta name="description" content="Reflect คือไดอารี่รายวันแบบเป็นส่วนตัวจริง ๆ ไม่ต้องสมัคร ไม่มีเซิร์ฟเวอร์ ทุกอย่างเก็บไว้ในเครื่องคุณเอง ใช้ฟรี ใช้ได้แม้ไม่มีเน็ต">
+<meta name="description" content="Reflect คือไดอารี่รายวันแบบเป็นส่วนตัวจริง ๆ ไม่ต้องสมัคร ไดอารี่เก็บไว้ในเครื่องคุณเอง ไม่ถูกส่งไปไหน ใช้ฟรี ใช้ได้แม้ไม่มีเน็ต">
 
 <!-- ===== FONT LOADING (Thai layout-shift minimized) ===== -->
 <!-- Warm up the font host early -->
@@ -480,7 +480,7 @@
             </svg>
           </div>
           <h3>ข้อมูลอยู่กับคุณคนเดียว</h3>
-          <p>ทุกอย่างที่เขียนถูกเก็บไว้ในเครื่องของคุณ ไม่ได้ถูกส่งขึ้นเซิร์ฟเวอร์ที่ไหนเลย</p>
+          <p>ไดอารี่ที่คุณเขียนถูกเก็บไว้ในเครื่องของคุณ ไม่ได้ถูกส่งขึ้นเซิร์ฟเวอร์ที่ไหน</p>
         </article>
 
         <article class="card benefit reveal">
@@ -715,11 +715,15 @@
           </li>
           <li>
             <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span><b>ไม่มีเซิร์ฟเวอร์เก็บข้อมูล</b> — บันทึกทุกอย่างอยู่ในเบราว์เซอร์ของเครื่องคุณเท่านั้น</span>
+            <span><b>ไม่มีเซิร์ฟเวอร์เก็บไดอารี่</b> — บันทึกทุกอย่างอยู่ในเบราว์เซอร์ของเครื่องคุณเท่านั้น</span>
           </li>
           <li>
             <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span><b>ไม่มีการอัปโหลด</b> — ไม่มีข้อมูลอะไรถูกส่งออกไปข้างนอกเลย</span>
+            <span><b>ไม่มีการอัปโหลดไดอารี่</b> — เนื้อหาที่คุณเขียนไม่ถูกส่งออกไปข้างนอก</span>
+          </li>
+          <li>
+            <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span><b>มีตัวนับแบบนิรนาม</b> — ใช้ GoatCounter นับคร่าวๆ ว่ามีกี่เครื่องเปิดหน้านี้และแอป ไม่ใช้คุกกี้ ไม่เห็นเนื้อหาไดอารี่ และเคารพ Do Not Track · ฟอนต์โหลดจาก Google Fonts จึงทำให้ Google เห็นที่อยู่เครือข่ายของคุณ</span>
           </li>
           <li>
             <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -891,6 +895,19 @@
 
   // Extra safety net for in-app browsers (LINE, etc.): land at the top on first load.
   window.addEventListener('load', function(){ if (!location.hash) window.scrollTo(0, 0); });
+</script>
+
+<script>
+  // ตัวนับผู้เข้าชมแบบนิรนาม (GoatCounter, pixel) — ส่งแค่ path "/site" ไม่ใช้คุกกี้ ข้ามถ้าเครื่องนี้ตั้ง "ไม่นับ" หรือเปิด Do Not Track
+  (function () {
+    try { if (localStorage.getItem('reflect_nocount_device_v1') === '1') return; } catch (e) {}
+    if (navigator.doNotTrack === '1') return;
+    try {
+      var img = new Image();
+      img.referrerPolicy = 'no-referrer';
+      img.src = 'https://reflect-app.goatcounter.com/count?p=/site';
+    } catch (e) {}
+  })();
 </script>
 
 </body>
